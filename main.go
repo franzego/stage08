@@ -2,8 +2,9 @@ package main
 
 import (
 	"log"
-	"os"
 
+	"github.com/franzego/stage08/config"
+	"github.com/franzego/stage08/internal/database"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -14,10 +15,22 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
-	// Get port from environment or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load configuration:", err)
+	}
+
+	// Connect to database
+	db, err := database.Connect(&cfg.Database)
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+
+	// Run migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatal("Failed to run migrations:", err)
 	}
 
 	// Initialize Gin router
@@ -32,8 +45,8 @@ func main() {
 	})
 
 	// Start server
-	log.Printf("Server starting on port %s...", port)
-	if err := router.Run(":" + port); err != nil {
+	log.Printf("Server starting on port %s...", cfg.Server.Port)
+	if err := router.Run(":" + cfg.Server.Port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
