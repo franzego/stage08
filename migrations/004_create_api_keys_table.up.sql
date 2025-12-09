@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
 );
 
 -- Indexes
-CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
-CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
-CREATE INDEX idx_api_keys_user_active ON api_keys(user_id, is_active);
-CREATE INDEX idx_api_keys_expires_at ON api_keys(expires_at);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON api_keys(expires_at);
 
 -- Function to enforce max 5 active keys per user
 CREATE OR REPLACE FUNCTION check_max_active_keys() RETURNS TRIGGER AS $$
@@ -41,6 +41,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS enforce_max_active_keys ON api_keys;
 CREATE TRIGGER enforce_max_active_keys
     BEFORE INSERT OR UPDATE ON api_keys
     FOR EACH ROW

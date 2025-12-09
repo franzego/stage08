@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS wallets (
 );
 
 -- Indexes for fast lookups
-CREATE INDEX idx_wallets_user_id ON wallets(user_id);
-CREATE INDEX idx_wallets_wallet_number ON wallets(wallet_number);
+CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_wallet_number ON wallets(wallet_number);
 
 -- Function to generate unique wallet number (13 digits)
 CREATE OR REPLACE FUNCTION generate_wallet_number() RETURNS VARCHAR(20) AS $$

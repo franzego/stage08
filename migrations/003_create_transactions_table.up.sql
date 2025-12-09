@@ -1,7 +1,16 @@
 -- Create transactions table
 -- Records all wallet activities
-CREATE TYPE transaction_type AS ENUM ('deposit', 'transfer_in', 'transfer_out');
-CREATE TYPE transaction_status AS ENUM ('pending', 'success', 'failed');
+DO $$ BEGIN
+    CREATE TYPE transaction_type AS ENUM ('deposit', 'transfer_in', 'transfer_out');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE transaction_status AS ENUM ('pending', 'success', 'failed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,11 +27,11 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- Indexes for queries
-CREATE INDEX idx_transactions_user_id ON transactions(user_id);
-CREATE INDEX idx_transactions_wallet_id ON transactions(wallet_id);
-CREATE INDEX idx_transactions_reference ON transactions(reference);
-CREATE INDEX idx_transactions_status ON transactions(status);
-CREATE INDEX idx_transactions_created_at ON transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON transactions(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_reference ON transactions(reference);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at DESC);
 
 -- Composite index for user transaction history
-CREATE INDEX idx_transactions_user_created ON transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_created ON transactions(user_id, created_at DESC);
