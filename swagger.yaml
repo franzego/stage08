@@ -1,0 +1,431 @@
+openapi: 3.0.0
+info:
+  title: Wallet Service API
+  description: Backend wallet service with Google OAuth, API keys, Paystack deposits, and wallet transfers
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://your-app.up.railway.app
+    description: Production
+
+tags:
+  - name: Authentication
+    description: Google OAuth endpoints
+  - name: API Keys
+    description: API key management
+  - name: Wallet
+    description: Wallet operations
+  - name: Webhook
+    description: Payment webhooks
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: Wallet service is running
+
+  /auth/google:
+    get:
+      summary: Initiate Google OAuth
+      tags: [Authentication]
+      description: Redirects to Google sign-in page
+      responses:
+        '307':
+          description: Redirect to Google OAuth
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      tags: [Authentication]
+      description: Handles Google OAuth callback and returns JWT
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      name:
+                        type: string
+
+  /keys/create:
+    post:
+      summary: Create API key
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - permissions
+                - expiry
+              properties:
+                name:
+                  type: string
+                  example: wallet-service
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    enum: [deposit, transfer, read]
+                  example: [deposit, transfer, read]
+                expiry:
+                  type: string
+                  enum: [1H, 1D, 1M, 1Y]
+                  example: 1D
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    example: sk_live_xxxxx
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  /keys/rollover:
+    post:
+      summary: Rollover expired API key
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - expired_key_id
+                - expiry
+              properties:
+                expired_key_id:
+                  type: string
+                  example: FGH2485K6KK79GKG9GKGK
+                expiry:
+                  type: string
+                  example: 1M
+      responses:
+        '201':
+          description: New API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  /keys/list:
+    get:
+      summary: List all API keys
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        key_prefix:
+                          type: string
+                        permissions:
+                          type: array
+                          items:
+                            type: string
+                        is_active:
+                          type: boolean
+                        expires_at:
+                          type: string
+                          format: date-time
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /keys/revoke:
+    post:
+      summary: Revoke an API key
+      tags: [API Keys]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - key_id
+              properties:
+                key_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: API key revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /wallet/balance:
+    get:
+      summary: Get wallet balance
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: integer
+                    description: Balance in kobo
+                    example: 15000
+                  wallet_number:
+                    type: string
+                    example: "4566678954356"
+
+  /wallet/transactions:
+    get:
+      summary: Get transaction history
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [deposit, transfer_in, transfer_out]
+                    amount:
+                      type: integer
+                    status:
+                      type: string
+                      enum: [pending, success, failed]
+
+  /wallet/deposit:
+    post:
+      summary: Initialize Paystack deposit
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                  description: Amount in kobo (minimum 100)
+                  example: 5000
+      responses:
+        '200':
+          description: Deposit initialized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reference:
+                    type: string
+                  authorization_url:
+                    type: string
+                    format: uri
+
+  /wallet/transfer:
+    post:
+      summary: Transfer money to another wallet
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wallet_number
+                - amount
+              properties:
+                wallet_number:
+                  type: string
+                  example: "4566678954356"
+                amount:
+                  type: integer
+                  description: Amount in kobo
+                  example: 3000
+      responses:
+        '200':
+          description: Transfer successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Transfer completed
+
+  /wallet/deposit/{reference}/status:
+    get:
+      summary: Check deposit status
+      tags: [Wallet]
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deposit status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reference:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, success, failed]
+                  amount:
+                    type: integer
+
+  /wallet/paystack/webhook:
+    post:
+      summary: Paystack webhook
+      tags: [Webhook]
+      description: Handles Paystack payment notifications
+      parameters:
+        - name: x-paystack-signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Google OAuth
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for service-to-service access
