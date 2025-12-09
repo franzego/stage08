@@ -1,0 +1,4 @@
+nohup: ignoring input
+2025/12/09 21:18:55 ✅ Database connection established
+2025/12/09 21:18:55 Running migration: migrations/001_create_users_table.up.sql
+2025/12/09 21:18:55 Failed to run migrations:failed to execute migration migrations/001_create_users_table.up.sql: pq: relation "idx_users_google_id" already exists
