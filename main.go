@@ -38,9 +38,15 @@ func main() {
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	apiKeyRepo := repository.NewAPIKeyRepository(db)
+	walletRepo := repository.NewWalletRepository(db)
+	txRepo := repository.NewTransactionRepository(db)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
+	apiKeyHandler := handlers.NewAPIKeyHandler(apiKeyRepo)
+	walletHandler := handlers.NewWalletHandler(walletRepo, txRepo, db)
+	paystackHandler := handlers.NewPaystackHandler(&cfg.Paystack, walletRepo, txRepo, db)
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -60,7 +66,55 @@ func main() {
 		authGroup.GET("/google/callback", authHandler.GoogleCallback)
 	}
 
-	// Protected routes (JWT required)
+	// API Key routes (JWT required)
+	keysGroup := router.Group("/keys")
+	keysGroup.Use(middleware.JWTAuth(cfg.JWT.Secret))
+	{
+		keysGroup.POST("/create", apiKeyHandler.CreateAPIKey)
+		keysGroup.POST("/rollover", apiKeyHandler.RolloverAPIKey)
+		keysGroup.GET("/list", apiKeyHandler.ListAPIKeys)
+		keysGroup.POST("/revoke", apiKeyHandler.RevokeAPIKey)
+	}
+
+	// Wallet routes (JWT or API key required)
+	walletGroup := router.Group("/wallet")
+	walletGroup.Use(middleware.AuthMiddleware(cfg.JWT.Secret, apiKeyRepo))
+	{
+		// Balance endpoint - requires 'read' permission
+		walletGroup.GET("/balance",
+			middleware.RequirePermission("read"),
+			walletHandler.GetBalance,
+		)
+
+		// Transaction history - requires 'read' permission
+		walletGroup.GET("/transactions",
+			middleware.RequirePermission("read"),
+			walletHandler.GetTransactions,
+		)
+
+		// Deposit endpoint - requires 'deposit' permission
+		walletGroup.POST("/deposit",
+			middleware.RequirePermission("deposit"),
+			paystackHandler.InitializeDeposit,
+		)
+
+		// Transfer endpoint - requires 'transfer' permission
+		walletGroup.POST("/transfer",
+			middleware.RequirePermission("transfer"),
+			walletHandler.Transfer,
+		)
+
+		// Deposit status check - requires 'read' permission
+		walletGroup.GET("/deposit/:reference/status",
+			middleware.RequirePermission("read"),
+			paystackHandler.GetDepositStatus,
+		)
+	}
+
+	// Paystack webhook (no authentication - validated by signature)
+	router.POST("/wallet/paystack/webhook", paystackHandler.PaystackWebhook)
+
+	// Protected routes (JWT required) - for testing
 	protectedGroup := router.Group("/")
 	protectedGroup.Use(middleware.JWTAuth(cfg.JWT.Secret))
 	{
