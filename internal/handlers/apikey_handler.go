@@ -71,7 +71,7 @@ func (h *APIKeyHandler) CreateAPIKey(c *gin.Context) {
 	apiKey, rawKey, err := h.apiKeyRepo.Create(userID, req.Name, req.Permissions, expiresAt)
 	if err != nil {
 		log.Printf("Failed to create API key: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create API key"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
