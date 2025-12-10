@@ -21,6 +21,7 @@ WORKDIR /root/
 # Copy binary
 COPY --from=builder /app/wallet-service .
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/swagger.yaml ./swagger.yaml
 
 EXPOSE 8080
 
