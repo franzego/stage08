@@ -59,25 +59,20 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 
 // GoogleCallback handles the OAuth callback from Google
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
-	// Log all query parameters
-	log.Printf("All query params: %v", c.Request.URL.Query())
-	
 	// Verify state
 	state := c.Query("state")
 	savedState, err := c.Cookie("oauth_state")
 
-	log.Printf("Received state: '%s'", state)
-	log.Printf("Saved state: '%s'", savedState)
+	log.Printf("Received state: %s", state)
+	log.Printf("Saved state: %s", savedState)
 	log.Printf("Cookie error: %v", err)
 
-	if err != nil || state == "" || state != savedState {
+	if err != nil || state != savedState {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid state parameter",
 			"debug": gin.H{
 				"received_state": state,
-				"saved_state": savedState,
 				"cookie_error":   fmt.Sprintf("%v", err),
-				"all_params": c.Request.URL.Query(),
 			},
 		})
 		return
