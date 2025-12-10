@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/franzego/stage08/config"
 	"github.com/franzego/stage08/internal/database"
@@ -60,7 +61,14 @@ func main() {
 	})
 
 	// Swagger documentation endpoint
-	router.StaticFile("/swagger.yaml", "./swagger.yaml")
+	router.GET("/swagger.yaml", func(c *gin.Context) {
+		data, err := os.ReadFile("swagger.yaml")
+		if err != nil {
+			c.JSON(404, gin.H{"error": "Swagger file not found"})
+			return
+		}
+		c.Data(200, "application/x-yaml", data)
+	})
 
 	// Auth routes (no authentication required)
 	authGroup := router.Group("/auth")
