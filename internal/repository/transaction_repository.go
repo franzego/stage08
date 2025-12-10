@@ -26,6 +26,14 @@ func (r *TransactionRepository) Create(tx *models.Transaction) error {
 		RETURNING id, created_at, updated_at
 	`
 
+	// Handle nil metadata - pass NULL to database
+	var metadata interface{}
+	if tx.Metadata != nil && len(tx.Metadata) > 0 {
+		metadata = tx.Metadata
+	} else {
+		metadata = nil
+	}
+
 	err := r.db.QueryRowx(query,
 		tx.UserID,
 		tx.WalletID,
@@ -34,7 +42,7 @@ func (r *TransactionRepository) Create(tx *models.Transaction) error {
 		tx.Status,
 		tx.Reference,
 		tx.Description,
-		tx.Metadata,
+		metadata,
 	).Scan(&tx.ID, &tx.CreatedAt, &tx.UpdatedAt)
 
 	if err != nil {
