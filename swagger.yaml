@@ -9,7 +9,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development
-  - url: https://your-app.up.railway.app
+  - url: https://stage08-production.up.railway.app
     description: Production
 
 tags:
