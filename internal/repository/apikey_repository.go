@@ -11,6 +11,7 @@ import (
 	"github.com/franzego/stage08/internal/models"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type APIKeyRepository struct {
@@ -55,7 +56,7 @@ func (r *APIKeyRepository) Create(userID uuid.UUID, name string, permissions []s
 		apiKey.Name,
 		apiKey.KeyHash,
 		apiKey.KeyPrefix,
-		apiKey.Permissions,
+		pq.Array(apiKey.Permissions),
 		apiKey.IsActive,
 		apiKey.ExpiresAt,
 	).Scan(&apiKey.ID, &apiKey.CreatedAt, &apiKey.UpdatedAt)
