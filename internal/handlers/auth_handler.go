@@ -51,6 +51,8 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	// Store state in session or cookie (simplified here)
 	c.SetCookie("oauth_state", state, 600, "/", "", false, true)
 
+	log.Printf("Generated state: %s", state)
+
 	url := h.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -60,8 +62,19 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// Verify state
 	state := c.Query("state")
 	savedState, err := c.Cookie("oauth_state")
+
+	log.Printf("Received state: %s", state)
+	log.Printf("Saved state: %s", savedState)
+	log.Printf("Cookie error: %v", err)
+
 	if err != nil || state != savedState {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid state parameter",
+			"debug": gin.H{
+				"received_state": state,
+				"cookie_error":   fmt.Sprintf("%v", err),
+			},
+		})
 		return
 	}
 
