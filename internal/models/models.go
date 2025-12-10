@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // User represents a user in the system
@@ -62,17 +63,17 @@ type Transaction struct {
 
 // APIKey represents an API key for service-to-service access
 type APIKey struct {
-	ID          uuid.UUID  `db:"id" json:"id"`
-	UserID      uuid.UUID  `db:"user_id" json:"user_id"`
-	Name        string     `db:"name" json:"name"`
-	KeyHash     string     `db:"key_hash" json:"-"` // Never expose hash
-	KeyPrefix   string     `db:"key_prefix" json:"key_prefix"`
-	Permissions []string   `db:"permissions" json:"permissions"`
-	IsActive    bool       `db:"is_active" json:"is_active"`
-	ExpiresAt   time.Time  `db:"expires_at" json:"expires_at"`
-	LastUsedAt  *time.Time `db:"last_used_at" json:"last_used_at,omitempty"`
-	CreatedAt   time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time  `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID      `db:"id" json:"id"`
+	UserID      uuid.UUID      `db:"user_id" json:"user_id"`
+	Name        string         `db:"name" json:"name"`
+	KeyHash     string         `db:"key_hash" json:"-"` // Never expose hash
+	KeyPrefix   string         `db:"key_prefix" json:"key_prefix"`
+	Permissions pq.StringArray `db:"permissions" json:"permissions"`
+	IsActive    bool           `db:"is_active" json:"is_active"`
+	ExpiresAt   time.Time      `db:"expires_at" json:"expires_at"`
+	LastUsedAt  *time.Time     `db:"last_used_at" json:"last_used_at,omitempty"`
+	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
 }
 
 // IsExpired checks if the API key has expired
