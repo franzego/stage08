@@ -59,6 +59,9 @@ func main() {
 		})
 	})
 
+	// Swagger documentation endpoint
+	router.StaticFile("/swagger.yaml", "./swagger.yaml")
+
 	// Auth routes (no authentication required)
 	authGroup := router.Group("/auth")
 	{
