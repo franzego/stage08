@@ -9,6 +9,7 @@ import (
 	"github.com/franzego/stage08/internal/handlers"
 	"github.com/franzego/stage08/internal/middleware"
 	"github.com/franzego/stage08/internal/repository"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -51,6 +52,15 @@ func main() {
 
 	// Initialize Gin router
 	router := gin.Default()
+
+	// Enable CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "x-api-key", "x-paystack-signature"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
